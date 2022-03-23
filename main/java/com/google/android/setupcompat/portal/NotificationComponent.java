@@ -76,7 +76,6 @@ public class NotificationComponent implements Parcelable {
 
   @Retention(RetentionPolicy.SOURCE)
   @IntDef({
-    NotificationType.UNKNOWN,
     NotificationType.INITIAL_ONGOING,
     NotificationType.PREDEFERRED,
     NotificationType.PREDEFERRED_PREPARING,
