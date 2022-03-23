@@ -60,23 +60,13 @@ public class PartnerConfigHelper {
       "isExtendedPartnerConfigEnabled";
 
   @VisibleForTesting
-  public static final String IS_MATERIAL_YOU_STYLE_ENABLED_METHOD = "IsMaterialYouStyleEnabled";
-
-  @VisibleForTesting
   public static final String IS_DYNAMIC_COLOR_ENABLED_METHOD = "isDynamicColorEnabled";
-
-  @VisibleForTesting
-  public static final String IS_NEUTRAL_BUTTON_STYLE_ENABLED_METHOD = "isNeutralButtonStyleEnabled";
 
   @VisibleForTesting static Bundle suwDayNightEnabledBundle = null;
 
   @VisibleForTesting public static Bundle applyExtendedPartnerConfigBundle = null;
 
-  @VisibleForTesting public static Bundle applyMaterialYouConfigBundle = null;
-
   @VisibleForTesting public static Bundle applyDynamicColorBundle = null;
-
-  @VisibleForTesting public static Bundle applyNeutralButtonStyleBundle = null;
 
   private static PartnerConfigHelper instance = null;
 
@@ -89,16 +79,7 @@ public class PartnerConfigHelper {
 
   private static int savedConfigUiMode;
 
-  @VisibleForTesting
-  public static int savedOrientation = Configuration.ORIENTATION_PORTRAIT;
-
-  /**
-   * When testing related to fake PartnerConfigHelper instance, should sync the following saved
-   * config with testing environment.
-   */
-  @VisibleForTesting public static int savedScreenHeight = Configuration.SCREEN_HEIGHT_DP_UNDEFINED;
-
-  @VisibleForTesting public static int savedScreenWidth = Configuration.SCREEN_WIDTH_DP_UNDEFINED;
+  private static int savedOrientation = Configuration.ORIENTATION_PORTRAIT;
 
   public static synchronized PartnerConfigHelper get(@NonNull Context context) {
     if (!isValidInstance(context)) {
@@ -112,21 +93,15 @@ public class PartnerConfigHelper {
     if (instance == null) {
       savedConfigUiMode = currentConfig.uiMode & Configuration.UI_MODE_NIGHT_MASK;
       savedOrientation = currentConfig.orientation;
-      savedScreenWidth = currentConfig.screenWidthDp;
-      savedScreenHeight = currentConfig.screenHeightDp;
       return false;
     } else {
-      boolean uiModeChanged =
-          isSetupWizardDayNightEnabled(context)
-              && (currentConfig.uiMode & Configuration.UI_MODE_NIGHT_MASK) != savedConfigUiMode;
-      if (uiModeChanged
-          || currentConfig.orientation != savedOrientation
-          || currentConfig.screenWidthDp != savedScreenWidth
-          || currentConfig.screenHeightDp != savedScreenHeight) {
+      if (isSetupWizardDayNightEnabled(context)
+          && (currentConfig.uiMode & Configuration.UI_MODE_NIGHT_MASK) != savedConfigUiMode) {
         savedConfigUiMode = currentConfig.uiMode & Configuration.UI_MODE_NIGHT_MASK;
+        resetInstance();
+        return false;
+      } else if (currentConfig.orientation != savedOrientation) {
         savedOrientation = currentConfig.orientation;
-        savedScreenHeight = currentConfig.screenHeightDp;
-        savedScreenWidth = currentConfig.screenWidthDp;
         resetInstance();
         return false;
       }
@@ -340,7 +315,7 @@ public class PartnerConfigHelper {
 
       result = resource.getBoolean(resId);
       partnerResourceCache.put(resourceConfig, result);
-    } catch (NullPointerException | NotFoundException exception) {
+    } catch (NullPointerException exception) {
       // fall through
     }
     return result;
@@ -389,7 +364,7 @@ public class PartnerConfigHelper {
       result =
           getDimensionFromTypedValue(
               context, (TypedValue) partnerResourceCache.get(resourceConfig));
-    } catch (NullPointerException | NotFoundException exception) {
+    } catch (NullPointerException exception) {
       // fall through
     }
     return result;
@@ -433,7 +408,7 @@ public class PartnerConfigHelper {
 
       result = resource.getFraction(resId, 1, 1);
       partnerResourceCache.put(resourceConfig, result);
-    } catch (NullPointerException | NotFoundException exception) {
+    } catch (NullPointerException exception) {
       // fall through
     }
     return result;
@@ -466,7 +441,7 @@ public class PartnerConfigHelper {
 
       result = resource.getInteger(resId);
       partnerResourceCache.put(resourceConfig, result);
-    } catch (NullPointerException | NotFoundException exception) {
+    } catch (NullPointerException exception) {
       // fall through
     }
     return result;
@@ -528,8 +503,6 @@ public class PartnerConfigHelper {
                     /* arg= */ null,
                     /* extras= */ null);
         partnerResourceCache.clear();
-        Log.i(
-            TAG, "PartnerConfigsBundle=" + (resultBundle != null ? resultBundle.size() : "(null)"));
       } catch (IllegalArgumentException | SecurityException exception) {
         Log.w(TAG, "Fail to get config from suw provider");
       }
@@ -576,9 +549,7 @@ public class PartnerConfigHelper {
     instance = null;
     suwDayNightEnabledBundle = null;
     applyExtendedPartnerConfigBundle = null;
-    applyMaterialYouConfigBundle = null;
     applyDynamicColorBundle = null;
-    applyNeutralButtonStyleBundle = null;
   }
 
   /**
@@ -635,29 +606,6 @@ public class PartnerConfigHelper {
             IS_EXTENDED_PARTNER_CONFIG_ENABLED_METHOD, false));
   }
 
-  /** Returns true if the SetupWizard is flow enabled "Material You(Glifv4)" style. */
-  public static boolean shouldApplyMaterialYouStyle(@NonNull Context context) {
-    if (applyMaterialYouConfigBundle == null) {
-      try {
-        applyMaterialYouConfigBundle =
-            context
-                .getContentResolver()
-                .call(
-                    getContentUri(),
-                    IS_MATERIAL_YOU_STYLE_ENABLED_METHOD,
-                    /* arg= */ null,
-                    /* extras= */ null);
-      } catch (IllegalArgumentException | SecurityException exception) {
-        Log.w(TAG, "SetupWizard Material You configs supporting status unknown; return as false.");
-        applyMaterialYouConfigBundle = null;
-        return false;
-      }
-    }
-
-    return (applyMaterialYouConfigBundle != null
-        && applyMaterialYouConfigBundle.getBoolean(IS_MATERIAL_YOU_STYLE_ENABLED_METHOD, false));
-  }
-
   /** Returns true if the SetupWizard supports the dynamic color during setup flow. */
   public static boolean isSetupWizardDynamicColorEnabled(@NonNull Context context) {
     if (applyDynamicColorBundle == null) {
@@ -679,29 +627,6 @@ public class PartnerConfigHelper {
 
     return (applyDynamicColorBundle != null
         && applyDynamicColorBundle.getBoolean(IS_DYNAMIC_COLOR_ENABLED_METHOD, false));
-  }
-
-  /** Returns true if the SetupWizard supports the neutral button style during setup flow. */
-  public static boolean isNeutralButtonStyleEnabled(@NonNull Context context) {
-    if (applyNeutralButtonStyleBundle == null) {
-      try {
-        applyNeutralButtonStyleBundle =
-            context
-                .getContentResolver()
-                .call(
-                    getContentUri(),
-                    IS_NEUTRAL_BUTTON_STYLE_ENABLED_METHOD,
-                    /* arg= */ null,
-                    /* extras= */ null);
-      } catch (IllegalArgumentException | SecurityException exception) {
-        Log.w(TAG, "Neutral button style supporting status unknown; return as false.");
-        applyNeutralButtonStyleBundle = null;
-        return false;
-      }
-    }
-
-    return (applyNeutralButtonStyleBundle != null
-        && applyNeutralButtonStyleBundle.getBoolean(IS_NEUTRAL_BUTTON_STYLE_ENABLED_METHOD, false));
   }
 
   @VisibleForTesting
