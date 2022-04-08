@@ -26,8 +26,8 @@ import android.os.Looper;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
+import android.util.Log;
 import com.google.android.setupcompat.ISetupCompatService;
-import com.google.android.setupcompat.util.Logger;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -39,8 +39,6 @@ import java.util.function.UnaryOperator;
  * state and reconnects if necessary.
  */
 public class SetupCompatServiceProvider {
-
-  private static final Logger LOG = new Logger("SetupCompatServiceProvider");
 
   /**
    * Returns an instance of {@link ISetupCompatService} if one already exists. If not, attempts to
@@ -96,7 +94,7 @@ public class SetupCompatServiceProvider {
     }
 
     CountDownLatch connectedStateLatch = getConnectedCondition();
-    LOG.atInfo("Waiting for service to get connected");
+    Log.i(TAG, "Waiting for service to get connected");
     boolean stateChanged = connectedStateLatch.await(timeout, timeUnit);
     if (!stateChanged) {
       // Even though documentation states that disconnected service should connect again,
@@ -106,10 +104,13 @@ public class SetupCompatServiceProvider {
           String.format("Failed to acquire connection after [%s %s]", timeout, timeUnit));
     }
     currentServiceState = getCurrentServiceState();
-    LOG.atInfo(
-        String.format(
-            "Finished waiting for service to get connected. Current state = %s",
-            currentServiceState.state));
+    if (Log.isLoggable(TAG, Log.INFO)) {
+      Log.i(
+          TAG,
+          String.format(
+              "Finished waiting for service to get connected. Current state = %s",
+              currentServiceState.state));
+    }
     return currentServiceState.compatService;
   }
 
@@ -125,11 +126,11 @@ public class SetupCompatServiceProvider {
   private synchronized void requestServiceBind() {
     ServiceContext currentServiceState = getCurrentServiceState();
     if (currentServiceState.state == State.CONNECTED) {
-      LOG.atInfo("Refusing to rebind since current state is already connected");
+      Log.i(TAG, "Refusing to rebind since current state is already connected");
       return;
     }
     if (currentServiceState.state != State.NOT_STARTED) {
-      LOG.atInfo("Unbinding existing service connection.");
+      Log.i(TAG, "Unbinding existing service connection.");
       context.unbindService(serviceConnection);
     }
 
@@ -138,7 +139,7 @@ public class SetupCompatServiceProvider {
       bindAllowed =
           context.bindService(COMPAT_SERVICE_INTENT, serviceConnection, Context.BIND_AUTO_CREATE);
     } catch (SecurityException e) {
-      LOG.e("Unable to bind to compat service. " + e);
+      Log.e(TAG, "Unable to bind to compat service", e);
       bindAllowed = false;
     }
 
@@ -148,12 +149,12 @@ public class SetupCompatServiceProvider {
       // in the normal world
       if (getCurrentState() != State.CONNECTED) {
         swapServiceContextAndNotify(new ServiceContext(State.BINDING));
-        LOG.atInfo("Context#bindService went through, now waiting for service connection");
+        Log.i(TAG, "Context#bindService went through, now waiting for service connection");
       }
     } else {
       // SetupWizard is not installed/calling app does not have permissions to bind.
       swapServiceContextAndNotify(new ServiceContext(State.BIND_FAILED));
-      LOG.e("Context#bindService did not succeed.");
+      Log.e(TAG, "Context#bindService did not succeed.");
     }
   }
 
@@ -173,9 +174,12 @@ public class SetupCompatServiceProvider {
   }
 
   private void swapServiceContextAndNotify(ServiceContext latestServiceContext) {
-    LOG.atInfo(
-        String.format("State changed: %s -> %s", serviceContext.state, latestServiceContext.state));
-
+    if (Log.isLoggable(TAG, Log.INFO)) {
+      Log.i(
+          TAG,
+          String.format(
+              "State changed: %s -> %s", serviceContext.state, latestServiceContext.state));
+    }
     serviceContext = latestServiceContext;
     CountDownLatch countDownLatch = getAndClearConnectedCondition();
     if (countDownLatch != null) {
@@ -217,7 +221,7 @@ public class SetupCompatServiceProvider {
           State state = State.CONNECTED;
           if (binder == null) {
             state = State.DISCONNECTED;
-            LOG.w("Binder is null when onServiceConnected was called!");
+            Log.w(TAG, "Binder is null when onServiceConnected was called!");
           }
           swapServiceContextAndNotify(
               new ServiceContext(state, ISetupCompatService.Stub.asInterface(binder)));
@@ -332,4 +336,6 @@ public class SetupCompatServiceProvider {
   // lint error.
   @SuppressLint("StaticFieldLeak")
   private static volatile SetupCompatServiceProvider instance;
+
+  private static final String TAG = "SucServiceProvider";
 }

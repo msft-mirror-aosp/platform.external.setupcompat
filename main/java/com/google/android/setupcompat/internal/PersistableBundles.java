@@ -22,17 +22,15 @@ import android.os.Build.VERSION_CODES;
 import android.os.Bundle;
 import android.os.PersistableBundle;
 import android.util.ArrayMap;
-import com.google.android.setupcompat.util.Logger;
+import android.util.Log;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
 /** Contains utility methods related to {@link PersistableBundle}. */
-@TargetApi(VERSION_CODES.LOLLIPOP_MR1)
+@TargetApi(VERSION_CODES.Q)
 public final class PersistableBundles {
-
-  private static final Logger LOG = new Logger("PersistableBundles");
 
   /**
    * Merges two or more {@link PersistableBundle}. Ensures no conflict of keys occurred during
@@ -123,7 +121,7 @@ public final class PersistableBundles {
     for (String key : baseBundle.keySet()) {
       Object value = baseBundle.get(key);
       if (!isSupportedDataType(value)) {
-        LOG.w(String.format("Unknown/unsupported data type [%s] for key %s", value, key));
+        Log.w(TAG, String.format("Unknown/unsupported data type [%s] for key %s", value, key));
         continue;
       }
       map.put(key, baseBundle.get(key));
@@ -143,4 +141,6 @@ public final class PersistableBundles {
   private PersistableBundles() {
     throw new AssertionError("Should not be instantiated");
   }
+
+  private static final String TAG = "SetupCompat.PersistBls";
 }

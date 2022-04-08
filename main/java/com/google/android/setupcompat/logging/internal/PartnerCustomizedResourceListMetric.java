@@ -30,28 +30,24 @@ import com.google.android.setupcompat.logging.SetupMetricsLogger;
 @TargetApi(VERSION_CODES.Q)
 public class PartnerCustomizedResourceListMetric {
 
-  public static void logMetrics(Context context, String deviceDisplayName, Bundle bundle) {
+  public static void logMetrics(Context context, String screenName, Bundle bundle) {
     PersistableBundle logBundle =
-        buildLogBundleFromResourceConfigBundle(context.getPackageName(), deviceDisplayName, bundle);
+        buildLogBundleFromResourceConfigBundle(context.getPackageName(), bundle);
     if (!logBundle.isEmpty()) {
       SetupMetricsLogger.logCustomEvent(
           context,
-          CustomEvent.create(
-              MetricKey.get("PartnerCustomizationResource", "NoScreenName"), logBundle));
+          CustomEvent.create(MetricKey.get("PartnerCustomizationResource", screenName), logBundle));
     }
   }
 
   @VisibleForTesting
   public static PersistableBundle buildLogBundleFromResourceConfigBundle(
-      String defaultPackageName, String deviceDisplayName, Bundle resourceConfigBundle) {
+      String defaultPackageName, Bundle resourceConfigBundle) {
     PersistableBundle persistableBundle = new PersistableBundle();
-    persistableBundle.putString("deviceDisplayName", deviceDisplayName);
     for (String key : resourceConfigBundle.keySet()) {
       Bundle resourceExtra = resourceConfigBundle.getBundle(key);
       if (!resourceExtra.getString("packageName", defaultPackageName).equals(defaultPackageName)) {
         persistableBundle.putBoolean(resourceExtra.getString("resourceName", key), true);
-      } else {
-        persistableBundle.putBoolean(resourceExtra.getString("resourceName", key), false);
       }
     }
 

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-    Copyright (C) 2019 The Android Open Source Project
+    Copyright (C) 2018 The Android Open Source Project
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -15,10 +15,15 @@
     limitations under the License.
 -->
 
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.google.android.setupcompat.partnerconfig">
+<resources>
 
-  <uses-sdk
-      android:minSdkVersion="14"
-      android:targetSdkVersion="28" />
-</manifest>
+    <!-- TODO: Remove default values from setup compat, use from theme -->
+    <!-- Footer button bar style padding attributes-->
+    <dimen name="suc_customization_footer_min_height">72dp</dimen>
+    <dimen name="suc_customization_button_margin_start">8dp</dimen>
+    <dimen name="suc_customization_button_margin_end">20dp</dimen>
+
+    <!-- Footer button style padding attributes -->
+    <dimen name="suc_customization_button_padding">16dp</dimen>
+
+</resources>
