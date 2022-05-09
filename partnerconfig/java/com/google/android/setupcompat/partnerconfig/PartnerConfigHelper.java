@@ -35,6 +35,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
 import com.google.android.setupcompat.partnerconfig.PartnerConfig.ResourceType;
+import com.google.android.setupcompat.util.BuildCompatUtils;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumMap;
@@ -68,6 +69,9 @@ public class PartnerConfigHelper {
   @VisibleForTesting
   public static final String IS_NEUTRAL_BUTTON_STYLE_ENABLED_METHOD = "isNeutralButtonStyleEnabled";
 
+  @VisibleForTesting public static final String SUW_PACKAGE_NAME = "com.google.android.setupwizard";
+  @VisibleForTesting public static final String MATERIAL_YOU_RESOURCE_SUFFIX = "_material_you";
+
   @VisibleForTesting static Bundle suwDayNightEnabledBundle = null;
 
   @VisibleForTesting public static Bundle applyExtendedPartnerConfigBundle = null;
@@ -89,7 +93,8 @@ public class PartnerConfigHelper {
 
   private static int savedConfigUiMode;
 
-  private static int savedOrientation = Configuration.ORIENTATION_PORTRAIT;
+  @VisibleForTesting
+  public static int savedOrientation = Configuration.ORIENTATION_PORTRAIT;
 
   /**
    * When testing related to fake PartnerConfigHelper instance, should sync the following saved
@@ -543,9 +548,10 @@ public class PartnerConfigHelper {
     if (fallbackBundle != null) {
       resourceEntryBundle.putBundle(KEY_FALLBACK_CONFIG, fallbackBundle.getBundle(resourceName));
     }
-
-    return adjustResourceEntryDayNightMode(
-        context, ResourceEntry.fromBundle(context, resourceEntryBundle));
+    ResourceEntry adjustResourceEntry =
+        adjustResourceEntryDefaultValue(
+            context, ResourceEntry.fromBundle(context, resourceEntryBundle));
+    return adjustResourceEntryDayNightMode(context, adjustResourceEntry);
   }
 
   /**
@@ -568,6 +574,44 @@ public class PartnerConfigHelper {
     }
 
     return resourceEntry;
+  }
+
+  // Check the MNStyle flag and replace the inputResourceEntry.resourceName &
+  // inputResourceEntry.resourceId after T, that means if using Gliv4 before S, will always use
+  // glifv3 resources.
+  ResourceEntry adjustResourceEntryDefaultValue(Context context, ResourceEntry inputResourceEntry) {
+    if (BuildCompatUtils.isAtLeastT() && shouldApplyMaterialYouStyle(context)) {
+      // If not overlay resource
+      try {
+        if (SUW_PACKAGE_NAME.equals(inputResourceEntry.getPackageName())) {
+          String resourceTypeName =
+              inputResourceEntry
+                  .getResources()
+                  .getResourceTypeName(inputResourceEntry.getResourceId());
+          // try to update resourceName & resourceId
+          String materialYouResourceName =
+              inputResourceEntry.getResourceName().concat(MATERIAL_YOU_RESOURCE_SUFFIX);
+          int materialYouResourceId =
+              inputResourceEntry
+                  .getResources()
+                  .getIdentifier(
+                      materialYouResourceName,
+                      resourceTypeName,
+                      inputResourceEntry.getPackageName());
+          if (materialYouResourceId != 0) {
+            Log.i(TAG, "use material you resource:" + materialYouResourceName);
+            return new ResourceEntry(
+                inputResourceEntry.getPackageName(),
+                materialYouResourceName,
+                materialYouResourceId,
+                inputResourceEntry.getResources());
+          }
+        }
+      } catch (NotFoundException ex) {
+        // fall through
+      }
+    }
+    return inputResourceEntry;
   }
 
   @VisibleForTesting
@@ -634,9 +678,12 @@ public class PartnerConfigHelper {
             IS_EXTENDED_PARTNER_CONFIG_ENABLED_METHOD, false));
   }
 
-  /** Returns true if the SetupWizard is flow enabled "Material You(Glifv4)" style. */
+  /**
+   * Returns true if the SetupWizard is flow enabled "Material You(Glifv4)" style, or the result of
+   * shouldApplyExtendedPartnerConfig() in SDK S as fallback.
+   */
   public static boolean shouldApplyMaterialYouStyle(@NonNull Context context) {
-    if (applyMaterialYouConfigBundle == null) {
+    if (applyMaterialYouConfigBundle == null || applyMaterialYouConfigBundle.isEmpty()) {
       try {
         applyMaterialYouConfigBundle =
             context
@@ -646,6 +693,13 @@ public class PartnerConfigHelper {
                     IS_MATERIAL_YOU_STYLE_ENABLED_METHOD,
                     /* arg= */ null,
                     /* extras= */ null);
+        // The suw version did not support the flag yet, fallback to
+        // shouldApplyExtendedPartnerConfig() for SDK S.
+        if (applyMaterialYouConfigBundle != null
+            && applyMaterialYouConfigBundle.isEmpty()
+            && !BuildCompatUtils.isAtLeastT()) {
+          return shouldApplyExtendedPartnerConfig(context);
+        }
       } catch (IllegalArgumentException | SecurityException exception) {
         Log.w(TAG, "SetupWizard Material You configs supporting status unknown; return as false.");
         applyMaterialYouConfigBundle = null;
