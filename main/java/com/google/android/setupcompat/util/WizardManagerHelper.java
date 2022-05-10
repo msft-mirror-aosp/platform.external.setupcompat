@@ -65,6 +65,9 @@ public final class WizardManagerHelper {
    */
   public static final String EXTRA_IS_SETUP_FLOW = "isSetupFlow";
 
+  /** Extra for notifying an activity that was called from suggested action activity. */
+  public static final String EXTRA_IS_SUW_SUGGESTED_ACTION_FLOW = "isSuwSuggestedActionFlow";
+
   public static final String EXTRA_THEME = "theme";
   public static final String EXTRA_USE_IMMERSIVE_MODE = "useImmersiveMode";
 
@@ -122,7 +125,8 @@ public final class WizardManagerHelper {
             EXTRA_IS_DEFERRED_SETUP,
             EXTRA_IS_PRE_DEFERRED_SETUP,
             EXTRA_IS_PORTAL_SETUP,
-            EXTRA_IS_SETUP_FLOW)) {
+            EXTRA_IS_SETUP_FLOW,
+            EXTRA_IS_SUW_SUGGESTED_ACTION_FLOW)) {
       dstIntent.putExtra(key, srcIntent.getBooleanExtra(key, false));
     }
 
@@ -179,6 +183,17 @@ public final class WizardManagerHelper {
               context.getContentResolver(), SETTINGS_GLOBAL_DEVICE_PROVISIONED, 0)
           == 1;
     }
+  }
+
+  /**
+   * Checks whether an intent is running in the portal setup wizard flow.
+   *
+   * @param originalIntent The original intent that was used to start the step, usually via {@link
+   *     Activity#getIntent()}.
+   * @return true if the intent passed in was running in portal setup wizard.
+   */
+  public static boolean isPortalSetupWizard(Intent originalIntent) {
+    return originalIntent != null && originalIntent.getBooleanExtra(EXTRA_IS_PORTAL_SETUP, false);
   }
 
   /**
