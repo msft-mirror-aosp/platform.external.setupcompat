@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 The Android Open Source Project
+ * Copyright (C) 2020 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,18 +14,10 @@
  * limitations under the License.
  */
 
-package com.google.android.setupcompat;
-
-import android.os.Bundle;
+package com.google.android.setupcompat.portal;
 
 /**
- * Declares the interface for compat related service methods.
+ * A class that represents how a persistent notification is to be presented to the user using the
+ * {@link com.google.android.setupcompat.portal.ISetupNotificationServicePortalExtension }.
  */
-interface ISetupCompatService {
-  /** Notifies SetupWizard that the screen is using PartnerCustomizationLayout */
-  oneway void validateActivity(String screenName, in Bundle arguments) = 0;
-
-  oneway void logMetric(int metricType, in Bundle arguments, in Bundle extras) = 1;
-
-  oneway void onFocusStatusChanged(in Bundle bundle) = 2;
-}
+parcelable TaskComponent;
