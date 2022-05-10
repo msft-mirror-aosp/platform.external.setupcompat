@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 The Android Open Source Project
+ * Copyright (C) 2020 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,18 +14,16 @@
  * limitations under the License.
  */
 
-package com.google.android.setupcompat;
+package com.google.android.setupcompat.portal;
 
-import android.os.Bundle;
+import com.google.android.setupcompat.portal.IPortalProgressCallback;
+import com.google.android.setupcompat.portal.TaskComponent;
 
 /**
- * Declares the interface for compat related service methods.
+ * Declares the interface for portal used by GmsCore.
  */
-interface ISetupCompatService {
-  /** Notifies SetupWizard that the screen is using PartnerCustomizationLayout */
-  oneway void validateActivity(String screenName, in Bundle arguments) = 0;
+interface ISetupNotificationServicePortalExtension {
+  IPortalProgressCallback registerTask(in TaskComponent component) = 1;
 
-  oneway void logMetric(int metricType, in Bundle arguments, in Bundle extras) = 1;
-
-  oneway void onFocusStatusChanged(in Bundle bundle) = 2;
+  boolean removeTask(String packageName, String taskName) = 2;
 }
