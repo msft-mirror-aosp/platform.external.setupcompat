@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 The Android Open Source Project
+ * Copyright (C) 2020 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,18 +14,13 @@
  * limitations under the License.
  */
 
-package com.google.android.setupcompat;
+package com.google.android.setupcompat.portal;
 
-import android.os.Bundle;
+/** Constant values used for PortalExtension */
+public class PortalExtensionConstants {
+  public static final String BIND_SERVICE_INTENT_ACTION =
+      "com.google.android.setupcompat.portal.SetupNotificationService.BIND_EXTENSION";
 
-/**
- * Declares the interface for compat related service methods.
- */
-interface ISetupCompatService {
-  /** Notifies SetupWizard that the screen is using PartnerCustomizationLayout */
-  oneway void validateActivity(String screenName, in Bundle arguments) = 0;
-
-  oneway void logMetric(int metricType, in Bundle arguments, in Bundle extras) = 1;
-
-  oneway void onFocusStatusChanged(in Bundle bundle) = 2;
+  private PortalExtensionConstants() {}
+  ;
 }
