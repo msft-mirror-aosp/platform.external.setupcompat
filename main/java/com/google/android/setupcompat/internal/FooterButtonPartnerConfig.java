@@ -24,10 +24,8 @@ public class FooterButtonPartnerConfig {
   private final PartnerConfig buttonBackgroundConfig;
   private final PartnerConfig buttonDisableAlphaConfig;
   private final PartnerConfig buttonDisableBackgroundConfig;
-  private final PartnerConfig buttonDisableTextColorConfig;
   private final PartnerConfig buttonIconConfig;
   private final PartnerConfig buttonTextColorConfig;
-  private final PartnerConfig buttonMarginStartConfig;
   private final PartnerConfig buttonTextSizeConfig;
   private final PartnerConfig buttonMinHeightConfig;
   private final PartnerConfig buttonTextTypeFaceConfig;
@@ -41,10 +39,8 @@ public class FooterButtonPartnerConfig {
       PartnerConfig buttonBackgroundConfig,
       PartnerConfig buttonDisableAlphaConfig,
       PartnerConfig buttonDisableBackgroundConfig,
-      PartnerConfig buttonDisableTextColorConfig,
       PartnerConfig buttonIconConfig,
       PartnerConfig buttonTextColorConfig,
-      PartnerConfig buttonMarginStartConfig,
       PartnerConfig buttonTextSizeConfig,
       PartnerConfig buttonMinHeightConfig,
       PartnerConfig buttonTextTypeFaceConfig,
@@ -54,7 +50,6 @@ public class FooterButtonPartnerConfig {
     this.partnerTheme = partnerTheme;
 
     this.buttonTextColorConfig = buttonTextColorConfig;
-    this.buttonMarginStartConfig = buttonMarginStartConfig;
     this.buttonTextSizeConfig = buttonTextSizeConfig;
     this.buttonMinHeightConfig = buttonMinHeightConfig;
     this.buttonTextTypeFaceConfig = buttonTextTypeFaceConfig;
@@ -62,7 +57,6 @@ public class FooterButtonPartnerConfig {
     this.buttonBackgroundConfig = buttonBackgroundConfig;
     this.buttonDisableAlphaConfig = buttonDisableAlphaConfig;
     this.buttonDisableBackgroundConfig = buttonDisableBackgroundConfig;
-    this.buttonDisableTextColorConfig = buttonDisableTextColorConfig;
     this.buttonRadiusConfig = buttonRadiusConfig;
     this.buttonIconConfig = buttonIconConfig;
     this.buttonRippleColorAlphaConfig = buttonRippleColorAlphaConfig;
@@ -84,20 +78,12 @@ public class FooterButtonPartnerConfig {
     return buttonDisableBackgroundConfig;
   }
 
-  public PartnerConfig getButtonDisableTextColorConfig() {
-    return buttonDisableTextColorConfig;
-  }
-
   public PartnerConfig getButtonIconConfig() {
     return buttonIconConfig;
   }
 
   public PartnerConfig getButtonTextColorConfig() {
     return buttonTextColorConfig;
-  }
-
-  public PartnerConfig getButtonMarginStartConfig() {
-    return buttonMarginStartConfig;
   }
 
   public PartnerConfig getButtonMinHeightConfig() {
@@ -130,10 +116,8 @@ public class FooterButtonPartnerConfig {
     private PartnerConfig buttonBackgroundConfig = null;
     private PartnerConfig buttonDisableAlphaConfig = null;
     private PartnerConfig buttonDisableBackgroundConfig = null;
-    private PartnerConfig buttonDisableTextColorConfig = null;
     private PartnerConfig buttonIconConfig = null;
     private PartnerConfig buttonTextColorConfig = null;
-    private PartnerConfig buttonMarginStartConfig = null;
     private PartnerConfig buttonTextSizeConfig = null;
     private PartnerConfig buttonMinHeight = null;
     private PartnerConfig buttonTextTypeFaceConfig = null;
@@ -165,18 +149,8 @@ public class FooterButtonPartnerConfig {
       return this;
     }
 
-    public Builder setButtonDisableTextColorConfig(PartnerConfig buttonDisableTextColorConfig) {
-      this.buttonDisableTextColorConfig = buttonDisableTextColorConfig;
-      return this;
-    }
-
     public Builder setButtonIconConfig(PartnerConfig buttonIconConfig) {
       this.buttonIconConfig = buttonIconConfig;
-      return this;
-    }
-
-    public Builder setMarginStartConfig(PartnerConfig buttonMarginStartConfig) {
-      this.buttonMarginStartConfig = buttonMarginStartConfig;
       return this;
     }
 
@@ -226,10 +200,8 @@ public class FooterButtonPartnerConfig {
           buttonBackgroundConfig,
           buttonDisableAlphaConfig,
           buttonDisableBackgroundConfig,
-          buttonDisableTextColorConfig,
           buttonIconConfig,
           buttonTextColorConfig,
-          buttonMarginStartConfig,
           buttonTextSizeConfig,
           buttonMinHeight,
           buttonTextTypeFaceConfig,
