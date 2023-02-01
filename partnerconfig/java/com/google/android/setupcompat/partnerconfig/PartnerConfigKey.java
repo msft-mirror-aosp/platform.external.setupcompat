@@ -86,6 +86,10 @@ import java.lang.annotation.RetentionPolicy;
   PartnerConfigKey.KEY_DESCRIPTION_LINK_FONT_FAMILY,
   PartnerConfigKey.KEY_DESCRIPTION_TEXT_MARGIN_TOP,
   PartnerConfigKey.KEY_DESCRIPTION_TEXT_MARGIN_BOTTOM,
+  PartnerConfigKey.KEY_ACCOUNT_NAME_TEXT_SIZE,
+  PartnerConfigKey.KEY_ACCOUNT_NAME_FONT_FAMILY,
+  PartnerConfigKey.KEY_ACCOUNT_AVATAR_MARGIN_END,
+  PartnerConfigKey.KEY_ACCOUNT_AVATAR_MAX_SIZE,
   PartnerConfigKey.KEY_CONTENT_TEXT_SIZE,
   PartnerConfigKey.KEY_CONTENT_TEXT_COLOR,
   PartnerConfigKey.KEY_CONTENT_LINK_TEXT_COLOR,
@@ -138,6 +142,7 @@ import java.lang.annotation.RetentionPolicy;
   PartnerConfigKey.KEY_LOADING_LAYOUT_CONTENT_PADDING_BOTTOM,
   PartnerConfigKey.KEY_LOADING_LAYOUT_HEADER_HEIGHT,
   PartnerConfigKey.KEY_LOADING_LAYOUT_FULL_SCREEN_ILLUSTRATION_ENABLED,
+  PartnerConfigKey.KEY_LOADING_LAYOUT_WAIT_FOR_ANIMATION_FINISHED,
   PartnerConfigKey.KEY_PROGRESS_BAR_MARGIN_TOP,
   PartnerConfigKey.KEY_PROGRESS_BAR_MARGIN_BOTTOM,
 })
@@ -337,6 +342,18 @@ public @interface PartnerConfigKey {
   // Margin bottom of the header text
   String KEY_DESCRIPTION_TEXT_MARGIN_BOTTOM = "setup_design_description_text_margin_bottom";
 
+  // Font size of the account name
+  String KEY_ACCOUNT_NAME_TEXT_SIZE = "setup_design_account_name_text_size";
+
+  // Font family of the account name
+  String KEY_ACCOUNT_NAME_FONT_FAMILY = "setup_design_account_name_font_family";
+
+  // Margin end of the account avatar
+  String KEY_ACCOUNT_AVATAR_MARGIN_END = "setup_design_account_avatar_margin_end";
+
+  // Size of the account avatar
+  String KEY_ACCOUNT_AVATAR_MAX_SIZE = "setup_design_account_avatar_size";
+
   // Text size of the body content text
   String KEY_CONTENT_TEXT_SIZE = "setup_design_content_text_size";
 
@@ -403,10 +420,10 @@ public @interface PartnerConfigKey {
   // The divider of list items are showing.
   String KEY_ITEMS_DIVIDER_SHOWN = "setup_design_items_divider_shown";
 
-  // The intrinsic width of the card view for foldabe/tablet.
+  // The intrinsic width of the card view for foldable/tablet.
   String KEY_CARD_VIEW_INTRINSIC_WIDTH = "setup_design_card_view_intrinsic_width";
 
-  // The intrinsic height of the card view for foldabe/tablet.
+  // The intrinsic height of the card view for foldable/tablet.
   String KEY_CARD_VIEW_INTRINSIC_HEIGHT = "setup_design_card_view_intrinsic_height";
 
   // The animation of loading screen used in those activities which is non of below type.
@@ -519,6 +536,10 @@ public @interface PartnerConfigKey {
   // Use the fullscreen style lottie animation.
   String KEY_LOADING_LAYOUT_FULL_SCREEN_ILLUSTRATION_ENABLED =
       "loading_layout_full_screen_illustration_enabled";
+
+  // Waiting the animation finished before process to the next page/action.
+  String KEY_LOADING_LAYOUT_WAIT_FOR_ANIMATION_FINISHED =
+      "loading_layout_wait_for_animation_finished";
 
   // A margin top of the content frame of progress bar.
   String KEY_PROGRESS_BAR_MARGIN_TOP = "setup_design_progress_bar_margin_top";

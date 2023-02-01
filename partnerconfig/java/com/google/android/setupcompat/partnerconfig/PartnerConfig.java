@@ -251,6 +251,20 @@ public enum PartnerConfig {
   CONFIG_DESCRIPTION_TEXT_MARGIN_BOTTOM(
       PartnerConfigKey.KEY_DESCRIPTION_TEXT_MARGIN_BOTTOM, ResourceType.DIMENSION),
 
+  // Font size of the account name
+  CONFIG_ACCOUNT_NAME_TEXT_SIZE(
+      PartnerConfigKey.KEY_ACCOUNT_NAME_TEXT_SIZE, ResourceType.DIMENSION),
+
+  // Font family of the account name
+  CONFIG_ACCOUNT_NAME_FONT_FAMILY(PartnerConfigKey.KEY_ACCOUNT_NAME_FONT_FAMILY, ResourceType.STRING),
+
+  // Margin end of the account avatar
+  CONFIG_ACCOUNT_AVATAR_MARGIN_END(
+      PartnerConfigKey.KEY_ACCOUNT_AVATAR_MARGIN_END, ResourceType.DIMENSION),
+
+  // Size of account avatar
+  CONFIG_ACCOUNT_AVATAR_SIZE(PartnerConfigKey.KEY_ACCOUNT_AVATAR_MAX_SIZE, ResourceType.DIMENSION),
+
   // Text size of the body content text
   CONFIG_CONTENT_TEXT_SIZE(PartnerConfigKey.KEY_CONTENT_TEXT_SIZE, ResourceType.DIMENSION),
 
@@ -455,6 +469,10 @@ public enum PartnerConfig {
   // Use the fullscreen style lottie animation.
   CONFIG_LOADING_LAYOUT_FULL_SCREEN_ILLUSTRATION_ENABLED(
       PartnerConfigKey.KEY_LOADING_LAYOUT_FULL_SCREEN_ILLUSTRATION_ENABLED, ResourceType.BOOL),
+
+  // Waiting for the animation finished before process to the next page/action.
+  CONFIG_LOADING_LAYOUT_WAIT_FOR_ANIMATION_FINISHED(
+      PartnerConfigKey.KEY_LOADING_LAYOUT_WAIT_FOR_ANIMATION_FINISHED, ResourceType.BOOL),
 
   // The margin top of progress bar.
   CONFIG_PROGRESS_BAR_MARGIN_TOP(
