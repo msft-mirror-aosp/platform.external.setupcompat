@@ -36,11 +36,20 @@ filegroup {
 }
 
 filegroup {
+    name: "AidlsBts",
+    srcs: [
+        "bts/aidl/com/google/android/setupcompat/bts/*.aidl",
+    ],
+    path: "bts/aidl",
+}
+
+filegroup {
     name: "Srcs",
     srcs: [
         "main/java/com/google/android/setupcompat/*.java",
         "main/java/com/google/android/setupcompat/internal/*.java",
         "main/java/com/google/android/setupcompat/logging/*.java",
+        "main/java/com/google/android/setupcompat/logging/*.kt",
         "main/java/com/google/android/setupcompat/logging/internal/*.java",
         "main/java/com/google/android/setupcompat/template/*.java",
         "main/java/com/google/android/setupcompat/util/*.java",
@@ -65,6 +74,14 @@ filegroup {
     path: "main/java",
 }
 
+filegroup {
+    name: "SrcsBts",
+    srcs: [
+        "bts/java/com/google/android/setupcompat/bts/*.java",
+    ],
+    path: "bts/java",
+}
+
 android_library {
     name: "setupcompat",
     manifest: "AndroidManifest.xml",
@@ -80,11 +97,43 @@ android_library {
     ],
     static_libs: [
         "androidx.annotation_annotation",
+        "androidx.window_window",
         "error_prone_annotations",
     ],
-    min_sdk_version: "14",
+    min_sdk_version: "19",
     sdk_version: "current",
     optimize: {
         proguard_flags_files: ["proguard.flags"],
-    }
+    },
+    lint: {
+        baseline_filename: "lint-baseline.xml",
+    },
+}
+
+android_library {
+    name: "setupcompat_bts",
+    manifest: "AndroidManifest.xml",
+    resource_dirs: [
+        "main/res",
+    ],
+    srcs: [
+        ":Srcs",
+        ":SrcsBts",
+        ":SrcsPartnerConfig",
+        ":Aidls",
+        ":AidlsBts",
+    ],
+    static_libs: [
+        "androidx.annotation_annotation",
+        "androidx.window_window",
+        "error_prone_annotations",
+    ],
+    min_sdk_version: "19",
+    sdk_version: "current",
+    optimize: {
+        proguard_flags_files: ["proguard.flags"],
+    },
+    lint: {
+        baseline_filename: "lint-baseline.xml",
+    },
 }

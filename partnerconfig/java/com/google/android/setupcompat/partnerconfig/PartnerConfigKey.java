@@ -34,6 +34,7 @@ import java.lang.annotation.RetentionPolicy;
   PartnerConfigKey.KEY_FOOTER_BAR_PADDING_START,
   PartnerConfigKey.KEY_FOOTER_BAR_PADDING_END,
   PartnerConfigKey.KEY_FOOTER_BUTTON_FONT_FAMILY,
+  PartnerConfigKey.KEY_FOOTER_BUTTON_FONT_WEIGHT,
   PartnerConfigKey.KEY_FOOTER_BUTTON_ICON_ADD_ANOTHER,
   PartnerConfigKey.KEY_FOOTER_BUTTON_ICON_CANCEL,
   PartnerConfigKey.KEY_FOOTER_BUTTON_ICON_CLEAR,
@@ -67,6 +68,7 @@ import java.lang.annotation.RetentionPolicy;
   PartnerConfigKey.KEY_HEADER_TEXT_SIZE,
   PartnerConfigKey.KEY_HEADER_TEXT_COLOR,
   PartnerConfigKey.KEY_HEADER_FONT_FAMILY,
+  PartnerConfigKey.KEY_HEADER_FONT_WEIGHT,
   PartnerConfigKey.KEY_HEADER_AREA_BACKGROUND_COLOR,
   PartnerConfigKey.KEY_HEADER_TEXT_MARGIN_TOP,
   PartnerConfigKey.KEY_HEADER_TEXT_MARGIN_BOTTOM,
@@ -79,10 +81,13 @@ import java.lang.annotation.RetentionPolicy;
   PartnerConfigKey.KEY_LAYOUT_GRAVITY,
   PartnerConfigKey.KEY_ICON_MARGIN_TOP,
   PartnerConfigKey.KEY_ICON_SIZE,
+  PartnerConfigKey.KEY_ILLUSTRATION_MAX_WIDTH,
+  PartnerConfigKey.KEY_ILLUSTRATION_MAX_HEIGHT,
   PartnerConfigKey.KEY_DESCRIPTION_TEXT_SIZE,
   PartnerConfigKey.KEY_DESCRIPTION_TEXT_COLOR,
   PartnerConfigKey.KEY_DESCRIPTION_LINK_TEXT_COLOR,
   PartnerConfigKey.KEY_DESCRIPTION_FONT_FAMILY,
+  PartnerConfigKey.KEY_DESCRIPTION_FONT_WEIGHT,
   PartnerConfigKey.KEY_DESCRIPTION_LINK_FONT_FAMILY,
   PartnerConfigKey.KEY_DESCRIPTION_TEXT_MARGIN_TOP,
   PartnerConfigKey.KEY_DESCRIPTION_TEXT_MARGIN_BOTTOM,
@@ -181,6 +186,9 @@ public @interface PartnerConfigKey {
   // The font face used in footer buttons. This must be a string reference to a font that is
   // available in the system. Font references (@font or @xml) are not allowed.
   String KEY_FOOTER_BUTTON_FONT_FAMILY = "setup_compat_footer_button_font_family";
+
+  // The font weight used in footer buttons.
+  String KEY_FOOTER_BUTTON_FONT_WEIGHT = "setup_compat_footer_button_font_weight";
 
   // The icon for "add another" action. Can be "@null" for no icon.
   String KEY_FOOTER_BUTTON_ICON_ADD_ANOTHER = "setup_compat_footer_button_icon_add_another";
@@ -283,6 +291,9 @@ public @interface PartnerConfigKey {
   // Font family of the header
   String KEY_HEADER_FONT_FAMILY = "setup_design_header_font_family";
 
+  // Font weight of the header
+  String KEY_HEADER_FONT_WEIGHT = "setup_design_header_font_weight";
+
   // Margin top of the header text
   String KEY_HEADER_TEXT_MARGIN_TOP = "setup_design_header_text_margin_top";
 
@@ -297,6 +308,12 @@ public @interface PartnerConfigKey {
 
   // Size of the icon
   String KEY_ICON_SIZE = "setup_design_icon_size";
+
+  // The max width for illustration
+  String KEY_ILLUSTRATION_MAX_WIDTH = "setup_design_illustration_max_width";
+
+  // The max height for illustration
+  String KEY_ILLUSTRATION_MAX_HEIGHT = "setup_design_illustration_max_height";
 
   // Background color of the header area
   String KEY_HEADER_AREA_BACKGROUND_COLOR = "setup_design_header_area_background_color";
@@ -332,6 +349,9 @@ public @interface PartnerConfigKey {
 
   // Font family of the description
   String KEY_DESCRIPTION_FONT_FAMILY = "setup_design_description_font_family";
+
+  // Font weight of the description
+  String KEY_DESCRIPTION_FONT_WEIGHT = "setup_design_description_font_weight";
 
   // Font family of the link text
   String KEY_DESCRIPTION_LINK_FONT_FAMILY = "setup_design_description_link_font_family";
