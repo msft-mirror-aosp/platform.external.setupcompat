@@ -16,10 +16,8 @@
 
 package com.google.android.setupcompat;
 
-import android.annotation.TargetApi;
 import android.app.Activity;
 import android.content.Context;
-import android.content.ContextWrapper;
 import android.content.res.TypedArray;
 import android.os.Build;
 import android.os.Build.VERSION;
@@ -76,6 +74,8 @@ public class PartnerCustomizationLayout extends TemplateLayout {
 
   private Activity activity;
 
+  private PersistableBundle layoutTypeBundle;
+
   @CanIgnoreReturnValue
   public PartnerCustomizationLayout(Context context) {
     this(context, 0, 0);
@@ -92,10 +92,6 @@ public class PartnerCustomizationLayout extends TemplateLayout {
     init(null, R.attr.sucLayoutTheme);
   }
 
-  @VisibleForTesting
-  final ViewTreeObserver.OnWindowFocusChangeListener windowFocusChangeListener =
-      this::onFocusChanged;
-
   @CanIgnoreReturnValue
   public PartnerCustomizationLayout(Context context, AttributeSet attrs) {
     super(context, attrs);
@@ -103,11 +99,14 @@ public class PartnerCustomizationLayout extends TemplateLayout {
   }
 
   @CanIgnoreReturnValue
-  @TargetApi(VERSION_CODES.HONEYCOMB)
   public PartnerCustomizationLayout(Context context, AttributeSet attrs, int defStyleAttr) {
     super(context, attrs, defStyleAttr);
     init(attrs, defStyleAttr);
   }
+
+  @VisibleForTesting
+  final ViewTreeObserver.OnWindowFocusChangeListener windowFocusChangeListener =
+      this::onFocusChanged;
 
   private void init(AttributeSet attrs, int defStyleAttr) {
     if (isInEditMode()) {
@@ -217,8 +216,7 @@ public class PartnerCustomizationLayout extends TemplateLayout {
   protected void onAttachedToWindow() {
     super.onAttachedToWindow();
     LifecycleFragment.attachNow(activity);
-    if (VERSION.SDK_INT >= VERSION_CODES.JELLY_BEAN_MR2
-        && WizardManagerHelper.isAnySetupWizard(activity.getIntent())) {
+    if (WizardManagerHelper.isAnySetupWizard(activity.getIntent())) {
       getViewTreeObserver().addOnWindowFocusChangeListener(windowFocusChangeListener);
     }
     getMixin(FooterBarMixin.class).onAttachedToWindow();
@@ -242,28 +240,39 @@ public class PartnerCustomizationLayout extends TemplateLayout {
               ? secondaryButton.getMetrics("SecondaryFooterButton")
               : PersistableBundle.EMPTY;
 
+      PersistableBundle layoutTypeMetrics =
+          (layoutTypeBundle != null) ? layoutTypeBundle : PersistableBundle.EMPTY;
+
       PersistableBundle persistableBundle =
           PersistableBundles.mergeBundles(
-              footerBarMixin.getLoggingMetrics(), primaryButtonMetrics, secondaryButtonMetrics);
+              footerBarMixin.getLoggingMetrics(),
+              primaryButtonMetrics,
+              secondaryButtonMetrics,
+              layoutTypeMetrics);
 
       SetupMetricsLogger.logCustomEvent(
           getContext(),
           CustomEvent.create(MetricKey.get("SetupCompatMetrics", activity), persistableBundle));
     }
+    getViewTreeObserver().removeOnWindowFocusChangeListener(windowFocusChangeListener);
+  }
 
-    if (VERSION.SDK_INT >= VERSION_CODES.JELLY_BEAN_MR2) {
-      getViewTreeObserver().removeOnWindowFocusChangeListener(windowFocusChangeListener);
-    }
+  /**
+   * PartnerCustomizationLayout is a template layout for different type of GlifLayout.
+   * This method allows each type of layout to report its "GlifLayoutType".
+   */
+  public void setLayoutTypeMetrics(PersistableBundle bundle) {
+    this.layoutTypeBundle = bundle;
+  }
+
+  /** Returns a {@link PersistableBundle} contains key "GlifLayoutType". */
+  @VisibleForTesting(otherwise = VisibleForTesting.PROTECTED)
+  public PersistableBundle getLayoutTypeMetrics() {
+    return this.layoutTypeBundle;
   }
 
   public static Activity lookupActivityFromContext(Context context) {
-    if (context instanceof Activity) {
-      return (Activity) context;
-    } else if (context instanceof ContextWrapper) {
-      return lookupActivityFromContext(((ContextWrapper) context).getBaseContext());
-    } else {
-      throw new IllegalArgumentException("Cannot find instance of Activity in parent tree");
-    }
+    return PartnerConfigHelper.lookupActivityFromContext(context);
   }
 
   /**
