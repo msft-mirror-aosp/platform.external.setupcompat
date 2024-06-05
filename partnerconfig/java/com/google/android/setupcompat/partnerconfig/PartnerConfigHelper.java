@@ -16,8 +16,12 @@
 
 package com.google.android.setupcompat.partnerconfig;
 
+import android.app.Activity;
 import android.content.ContentResolver;
 import android.content.Context;
+import android.content.ContextWrapper;
+import android.content.pm.PackageManager;
+import android.content.pm.PackageManager.NameNotFoundException;
 import android.content.res.Configuration;
 import android.content.res.Resources;
 import android.content.res.Resources.NotFoundException;
@@ -34,12 +38,14 @@ import androidx.annotation.ColorInt;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
+import androidx.window.embedding.ActivityEmbeddingController;
 import com.google.android.setupcompat.partnerconfig.PartnerConfig.ResourceType;
 import com.google.android.setupcompat.util.BuildCompatUtils;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumMap;
 import java.util.List;
+import java.util.Objects;
 
 /** The helper reads and caches the partner configurations from SUW. */
 public class PartnerConfigHelper {
@@ -66,11 +72,20 @@ public class PartnerConfigHelper {
   public static final String IS_DYNAMIC_COLOR_ENABLED_METHOD = "isDynamicColorEnabled";
 
   @VisibleForTesting
+  public static final String IS_FULL_DYNAMIC_COLOR_ENABLED_METHOD = "isFullDynamicColorEnabled";
+
+  @VisibleForTesting
   public static final String IS_NEUTRAL_BUTTON_STYLE_ENABLED_METHOD = "isNeutralButtonStyleEnabled";
+
+  @VisibleForTesting
+  public static final String IS_FONT_WEIGHT_ENABLED_METHOD = "isFontWeightEnabled";
 
   @VisibleForTesting
   public static final String IS_EMBEDDED_ACTIVITY_ONE_PANE_ENABLED_METHOD =
       "isEmbeddedActivityOnePaneEnabled";
+
+  @VisibleForTesting
+  public static final String IS_FORCE_TWO_PANE_ENABLED_METHOD = "isForceTwoPaneEnabled";
 
   @VisibleForTesting
   public static final String GET_SUW_DEFAULT_THEME_STRING_METHOD = "suwDefaultThemeString";
@@ -88,8 +103,11 @@ public class PartnerConfigHelper {
   @VisibleForTesting public static Bundle applyMaterialYouConfigBundle = null;
 
   @VisibleForTesting public static Bundle applyDynamicColorBundle = null;
+  @VisibleForTesting public static Bundle applyFullDynamicColorBundle = null;
 
   @VisibleForTesting public static Bundle applyNeutralButtonStyleBundle = null;
+
+  @VisibleForTesting public static Bundle applyFontWeightBundle = null;
 
   @VisibleForTesting public static Bundle applyEmbeddedActivityOnePaneBundle = null;
 
@@ -110,6 +128,10 @@ public class PartnerConfigHelper {
 
   @VisibleForTesting static Bundle applyTransitionBundle = null;
 
+  @SuppressWarnings("NonFinalStaticField")
+  @VisibleForTesting
+  public static Bundle applyForceTwoPaneBundle = null;
+
   @VisibleForTesting public static int savedOrientation = Configuration.ORIENTATION_PORTRAIT;
 
   /** The method name to get if transition settings is set from client. */
@@ -123,6 +145,9 @@ public class PartnerConfigHelper {
   @VisibleForTesting public static int savedScreenHeight = Configuration.SCREEN_HEIGHT_DP_UNDEFINED;
 
   @VisibleForTesting public static int savedScreenWidth = Configuration.SCREEN_WIDTH_DP_UNDEFINED;
+
+  /** A string to be a suffix of resource name which is associating to force two pane feature. */
+  @VisibleForTesting static final String FORCE_TWO_PANE_SUFFIX = "_two_pane";
 
   public static synchronized PartnerConfigHelper get(@NonNull Context context) {
     if (!isValidInstance(context)) {
@@ -573,15 +598,42 @@ public class PartnerConfigHelper {
     if (fallbackBundle != null) {
       resourceEntryBundle.putBundle(KEY_FALLBACK_CONFIG, fallbackBundle.getBundle(resourceName));
     }
-    ResourceEntry adjustResourceEntry =
-        adjustResourceEntryDefaultValue(
-            context, ResourceEntry.fromBundle(context, resourceEntryBundle));
-    ;
-    if (BuildCompatUtils.isAtLeastU() && isEmbeddedActivityOnePaneEnabled(context)) {
-      adjustResourceEntry = embeddedActivityResourceEntryDefaultValue(context, adjustResourceEntry);
+
+    ResourceEntry resourceEntry = ResourceEntry.fromBundle(context, resourceEntryBundle);
+
+    if (BuildCompatUtils.isAtLeastU() && isActivityEmbedded(context)) {
+      resourceEntry = adjustEmbeddedActivityResourceEntryDefaultValue(context, resourceEntry);
+    } else if (BuildCompatUtils.isAtLeastU() && isForceTwoPaneEnabled(context)) {
+      resourceEntry = adjustForceTwoPaneResourceEntryDefaultValue(context, resourceEntry);
+    } else if (BuildCompatUtils.isAtLeastT() && shouldApplyMaterialYouStyle(context)) {
+      resourceEntry = adjustMaterialYouResourceEntryDefaultValue(context, resourceEntry);
     }
 
-    return adjustResourceEntryDayNightMode(context, adjustResourceEntry);
+    return adjustResourceEntryDayNightMode(context, resourceEntry);
+  }
+
+  @VisibleForTesting
+  boolean isActivityEmbedded(Context context) {
+    Activity activity;
+    try {
+      activity = lookupActivityFromContext(context);
+    } catch (IllegalArgumentException e) {
+      Log.w(TAG, "Not a Activity instance in parent tree");
+      return false;
+    }
+
+    return isEmbeddedActivityOnePaneEnabled(context)
+        && ActivityEmbeddingController.getInstance(activity).isActivityEmbedded(activity);
+  }
+
+  public static Activity lookupActivityFromContext(Context context) {
+    if (context instanceof Activity) {
+      return (Activity) context;
+    } else if (context instanceof ContextWrapper) {
+      return lookupActivityFromContext(((ContextWrapper) context).getBaseContext());
+    } else {
+      throw new IllegalArgumentException("Cannot find instance of Activity in parent tree");
+    }
   }
 
   /**
@@ -609,68 +661,29 @@ public class PartnerConfigHelper {
   // Check the MNStyle flag and replace the inputResourceEntry.resourceName &
   // inputResourceEntry.resourceId after T, that means if using Gliv4 before S, will always use
   // glifv3 resources.
-  ResourceEntry adjustResourceEntryDefaultValue(Context context, ResourceEntry inputResourceEntry) {
-    if (BuildCompatUtils.isAtLeastT() && shouldApplyMaterialYouStyle(context)) {
-      // If not overlay resource
-      try {
-        if (SUW_PACKAGE_NAME.equals(inputResourceEntry.getPackageName())) {
-          String resourceTypeName =
-              inputResourceEntry
-                  .getResources()
-                  .getResourceTypeName(inputResourceEntry.getResourceId());
-          // try to update resourceName & resourceId
-          String materialYouResourceName =
-              inputResourceEntry.getResourceName().concat(MATERIAL_YOU_RESOURCE_SUFFIX);
-          int materialYouResourceId =
-              inputResourceEntry
-                  .getResources()
-                  .getIdentifier(
-                      materialYouResourceName,
-                      resourceTypeName,
-                      inputResourceEntry.getPackageName());
-          if (materialYouResourceId != 0) {
-            Log.i(TAG, "use material you resource:" + materialYouResourceName);
-            return new ResourceEntry(
-                inputResourceEntry.getPackageName(),
-                materialYouResourceName,
-                materialYouResourceId,
-                inputResourceEntry.getResources());
-          }
-        }
-      } catch (NotFoundException ex) {
-        // fall through
-      }
-    }
-    return inputResourceEntry;
-  }
-
-  // Check the embedded acitvity flag and replace the inputResourceEntry.resourceName &
-  // inputResourceEntry.resourceId after U.
-  ResourceEntry embeddedActivityResourceEntryDefaultValue(
+  ResourceEntry adjustMaterialYouResourceEntryDefaultValue(
       Context context, ResourceEntry inputResourceEntry) {
     // If not overlay resource
     try {
-      if (SUW_PACKAGE_NAME.equals(inputResourceEntry.getPackageName())) {
+      if (Objects.equals(inputResourceEntry.getPackageName(), SUW_PACKAGE_NAME)) {
         String resourceTypeName =
             inputResourceEntry
                 .getResources()
                 .getResourceTypeName(inputResourceEntry.getResourceId());
         // try to update resourceName & resourceId
-        String embeddedActivityResourceName =
-            inputResourceEntry.getResourceName().concat(EMBEDDED_ACTIVITY_RESOURCE_SUFFIX);
-        int embeddedActivityResourceId =
+        String materialYouResourceName =
+            inputResourceEntry.getResourceName().concat(MATERIAL_YOU_RESOURCE_SUFFIX);
+        int materialYouResourceId =
             inputResourceEntry
                 .getResources()
                 .getIdentifier(
-                    embeddedActivityResourceName,
-                    resourceTypeName,
-                    inputResourceEntry.getPackageName());
-        if (embeddedActivityResourceId != 0) {
-          Log.i(TAG, "use embedded activity resource:" + embeddedActivityResourceName);
+                    materialYouResourceName, resourceTypeName, inputResourceEntry.getPackageName());
+        if (materialYouResourceId != 0) {
+          Log.i(TAG, "use material you resource:" + materialYouResourceName);
           return new ResourceEntry(
               inputResourceEntry.getPackageName(),
-              embeddedActivityResourceName,
-              embeddedActivityResourceId,
+              materialYouResourceName,
+              materialYouResourceId,
               inputResourceEntry.getResources());
         }
       }
@@ -680,6 +693,98 @@ public class PartnerConfigHelper {
     return inputResourceEntry;
   }
 
+  // Check the embedded activity flag and replace the inputResourceEntry.resourceName &
+  // inputResourceEntry.resourceId, and try to find the embedded resource from the different
+  // package.
+  ResourceEntry adjustEmbeddedActivityResourceEntryDefaultValue(
+      Context context, ResourceEntry inputResourceEntry) {
+    // If not overlay resource
+    try {
+      String resourceTypeName =
+          inputResourceEntry.getResources().getResourceTypeName(inputResourceEntry.getResourceId());
+      // For the first time to get embedded activity resource id, it may get from setup wizard
+      // package or Overlay package.
+      String embeddedActivityResourceName =
+          inputResourceEntry.getResourceName().concat(EMBEDDED_ACTIVITY_RESOURCE_SUFFIX);
+      int embeddedActivityResourceId =
+          inputResourceEntry
+              .getResources()
+              .getIdentifier(
+                  embeddedActivityResourceName,
+                  resourceTypeName,
+                  inputResourceEntry.getPackageName());
+      if (embeddedActivityResourceId != 0) {
+        Log.i(TAG, "use embedded activity resource:" + embeddedActivityResourceName);
+        return new ResourceEntry(
+            inputResourceEntry.getPackageName(),
+            embeddedActivityResourceName,
+            embeddedActivityResourceId,
+            inputResourceEntry.getResources());
+      } else {
+        // If resource id is not available from the Overlay package, try to get it from setup wizard
+        // package.
+        PackageManager manager = context.getPackageManager();
+        Resources resources = manager.getResourcesForApplication(SUW_PACKAGE_NAME);
+        embeddedActivityResourceId =
+            resources.getIdentifier(
+                embeddedActivityResourceName, resourceTypeName, SUW_PACKAGE_NAME);
+        if (embeddedActivityResourceId != 0) {
+          return new ResourceEntry(
+              SUW_PACKAGE_NAME,
+              embeddedActivityResourceName,
+              embeddedActivityResourceId,
+              resources);
+        }
+      }
+    } catch (NotFoundException | NameNotFoundException ex) {
+      // fall through
+    }
+    return inputResourceEntry;
+  }
+
+  // Retrieve {@code resourceEntry} with _two_pane suffix resource from the partner resource,
+  // otherwise fallback to origin partner resource if two pane resource not available.
+  ResourceEntry adjustForceTwoPaneResourceEntryDefaultValue(
+      Context context, ResourceEntry resourceEntry) {
+    if (context == null) {
+      return resourceEntry;
+    }
+
+    try {
+      String resourceTypeName =
+          resourceEntry.getResources().getResourceTypeName(resourceEntry.getResourceId());
+      String forceTwoPaneResourceName =
+          resourceEntry.getResourceName().concat(FORCE_TWO_PANE_SUFFIX);
+      int twoPaneResourceId =
+          resourceEntry
+              .getResources()
+              .getIdentifier(
+                  forceTwoPaneResourceName, resourceTypeName, resourceEntry.getPackageName());
+      if (twoPaneResourceId != Resources.ID_NULL) {
+        Log.i(TAG, "two pane resource=" + forceTwoPaneResourceName);
+        return new ResourceEntry(
+            resourceEntry.getPackageName(),
+            forceTwoPaneResourceName,
+            twoPaneResourceId,
+            resourceEntry.getResources());
+      } else {
+        // If resource id is not available from the Overlay package, try to get it from setup wizard
+        // package.
+        PackageManager packageManager = context.getPackageManager();
+        Resources resources = packageManager.getResourcesForApplication(SUW_PACKAGE_NAME);
+        twoPaneResourceId =
+            resources.getIdentifier(forceTwoPaneResourceName, resourceTypeName, SUW_PACKAGE_NAME);
+        if (twoPaneResourceId != 0) {
+          return new ResourceEntry(
+              SUW_PACKAGE_NAME, forceTwoPaneResourceName, twoPaneResourceId, resources);
+        }
+      }
+    } catch (NameNotFoundException | NotFoundException ignore) {
+      // fall through
+    }
+    return resourceEntry;
+  }
+
   @VisibleForTesting
   public static synchronized void resetInstance() {
     instance = null;
@@ -687,10 +792,12 @@ public class PartnerConfigHelper {
     applyExtendedPartnerConfigBundle = null;
     applyMaterialYouConfigBundle = null;
     applyDynamicColorBundle = null;
+    applyFullDynamicColorBundle = null;
     applyNeutralButtonStyleBundle = null;
     applyEmbeddedActivityOnePaneBundle = null;
     suwDefaultThemeBundle = null;
     applyTransitionBundle = null;
+    applyForceTwoPaneBundle = null;
   }
 
   /**
@@ -831,6 +938,29 @@ public class PartnerConfigHelper {
         && applyDynamicColorBundle.getBoolean(IS_DYNAMIC_COLOR_ENABLED_METHOD, false));
   }
 
+  /** Returns {@code true} if the SetupWizard supports the full dynamic color during setup flow. */
+  public static boolean isSetupWizardFullDynamicColorEnabled(@NonNull Context context) {
+    if (applyFullDynamicColorBundle == null) {
+      try {
+        applyFullDynamicColorBundle =
+            context
+                .getContentResolver()
+                .call(
+                    getContentUri(),
+                    IS_FULL_DYNAMIC_COLOR_ENABLED_METHOD,
+                    /* arg= */ null,
+                    /* extras= */ null);
+      } catch (IllegalArgumentException | SecurityException exception) {
+        Log.w(TAG, "SetupWizard full dynamic color supporting status unknown; return as false.");
+        applyFullDynamicColorBundle = null;
+        return false;
+      }
+    }
+
+    return (applyFullDynamicColorBundle != null
+        && applyFullDynamicColorBundle.getBoolean(IS_FULL_DYNAMIC_COLOR_ENABLED_METHOD, false));
+  }
+
   /** Returns true if the SetupWizard supports the one-pane embedded activity during setup flow. */
   public static boolean isEmbeddedActivityOnePaneEnabled(@NonNull Context context) {
     if (applyEmbeddedActivityOnePaneBundle == null) {
@@ -880,13 +1010,35 @@ public class PartnerConfigHelper {
         && applyNeutralButtonStyleBundle.getBoolean(IS_NEUTRAL_BUTTON_STYLE_ENABLED_METHOD, false));
   }
 
+  /** Returns true if the SetupWizard supports the font weight customization during setup flow. */
+  public static boolean isFontWeightEnabled(@NonNull Context context) {
+    if (applyFontWeightBundle == null) {
+      try {
+        applyFontWeightBundle =
+            context
+                .getContentResolver()
+                .call(
+                    getContentUri(),
+                    IS_FONT_WEIGHT_ENABLED_METHOD,
+                    /* arg= */ null,
+                    /* extras= */ null);
+      } catch (IllegalArgumentException | SecurityException exception) {
+        Log.w(TAG, "Font weight supporting status unknown; return as false.");
+        applyFontWeightBundle = null;
+        return false;
+      }
+    }
+
+    return (applyFontWeightBundle != null
+        && applyFontWeightBundle.getBoolean(IS_FONT_WEIGHT_ENABLED_METHOD, true));
+  }
+
   /**
    * Returns the system property to indicate the transition settings is set by Glif theme rather
    * than the client.
    */
   public static boolean isGlifThemeControlledTransitionApplied(@NonNull Context context) {
-    if (applyTransitionBundle == null
-        || applyTransitionBundle.isEmpty()) {
+    if (applyTransitionBundle == null || applyTransitionBundle.isEmpty()) {
       try {
         applyTransitionBundle =
             context
@@ -903,12 +1055,32 @@ public class PartnerConfigHelper {
                 + " as default value");
       }
     }
-    if (applyTransitionBundle != null
-        && !applyTransitionBundle.isEmpty()) {
-      return applyTransitionBundle.getBoolean(
-          APPLY_GLIF_THEME_CONTROLLED_TRANSITION_METHOD, true);
+    if (applyTransitionBundle != null && !applyTransitionBundle.isEmpty()) {
+      return applyTransitionBundle.getBoolean(APPLY_GLIF_THEME_CONTROLLED_TRANSITION_METHOD, true);
     }
     return true;
+  }
+
+  /** Returns a boolean indicate whether the force two pane feature enable or not. */
+  public static boolean isForceTwoPaneEnabled(@NonNull Context context) {
+    if (applyForceTwoPaneBundle == null || applyForceTwoPaneBundle.isEmpty()) {
+      try {
+        applyForceTwoPaneBundle =
+            context
+                .getContentResolver()
+                .call(
+                    getContentUri(),
+                    IS_FORCE_TWO_PANE_ENABLED_METHOD,
+                    /* arg= */ null,
+                    /* extras= */ null);
+      } catch (IllegalArgumentException | SecurityException exception) {
+        Log.w(TAG, "isForceTwoPaneEnabled status is unknown; return as false.");
+      }
+    }
+    if (applyForceTwoPaneBundle != null && !applyForceTwoPaneBundle.isEmpty()) {
+      return applyForceTwoPaneBundle.getBoolean(IS_FORCE_TWO_PANE_ENABLED_METHOD, false);
+    }
+    return false;
   }
 
   @VisibleForTesting

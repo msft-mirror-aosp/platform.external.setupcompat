@@ -16,10 +16,8 @@
 
 package com.google.android.setupcompat;
 
-import android.annotation.TargetApi;
 import android.app.Activity;
 import android.content.Context;
-import android.content.ContextWrapper;
 import android.content.res.TypedArray;
 import android.os.Build;
 import android.os.Build.VERSION;
@@ -38,6 +36,8 @@ import com.google.android.setupcompat.internal.PersistableBundles;
 import com.google.android.setupcompat.internal.SetupCompatServiceInvoker;
 import com.google.android.setupcompat.internal.TemplateLayout;
 import com.google.android.setupcompat.logging.CustomEvent;
+import com.google.android.setupcompat.logging.LoggingObserver;
+import com.google.android.setupcompat.logging.LoggingObserver.SetupCompatUiEvent.LayoutInflatedEvent;
 import com.google.android.setupcompat.logging.MetricKey;
 import com.google.android.setupcompat.logging.SetupMetricsLogger;
 import com.google.android.setupcompat.partnerconfig.PartnerConfigHelper;
@@ -101,7 +101,6 @@ public class PartnerCustomizationLayout extends TemplateLayout {
   }
 
   @CanIgnoreReturnValue
-  @TargetApi(VERSION_CODES.HONEYCOMB)
   public PartnerCustomizationLayout(Context context, AttributeSet attrs, int defStyleAttr) {
     super(context, attrs, defStyleAttr);
     init(attrs, defStyleAttr);
@@ -219,8 +218,7 @@ public class PartnerCustomizationLayout extends TemplateLayout {
   protected void onAttachedToWindow() {
     super.onAttachedToWindow();
     LifecycleFragment.attachNow(activity);
-    if (VERSION.SDK_INT >= VERSION_CODES.JELLY_BEAN_MR2
-        && WizardManagerHelper.isAnySetupWizard(activity.getIntent())) {
+    if (WizardManagerHelper.isAnySetupWizard(activity.getIntent())) {
       getViewTreeObserver().addOnWindowFocusChangeListener(windowFocusChangeListener);
     }
     getMixin(FooterBarMixin.class).onAttachedToWindow();
@@ -258,15 +256,12 @@ public class PartnerCustomizationLayout extends TemplateLayout {
           getContext(),
           CustomEvent.create(MetricKey.get("SetupCompatMetrics", activity), persistableBundle));
     }
-
-    if (VERSION.SDK_INT >= VERSION_CODES.JELLY_BEAN_MR2) {
-      getViewTreeObserver().removeOnWindowFocusChangeListener(windowFocusChangeListener);
-    }
+    getViewTreeObserver().removeOnWindowFocusChangeListener(windowFocusChangeListener);
   }
 
   /**
-   * PartnerCustomizationLayout is a template layout for different type of GlifLayout.
-   * This method allows each type of layout to report its "GlifLayoutType".
+   * PartnerCustomizationLayout is a template layout for different type of GlifLayout. This method
+   * allows each type of layout to report its "GlifLayoutType".
    */
   public void setLayoutTypeMetrics(PersistableBundle bundle) {
     this.layoutTypeBundle = bundle;
@@ -279,13 +274,7 @@ public class PartnerCustomizationLayout extends TemplateLayout {
   }
 
   public static Activity lookupActivityFromContext(Context context) {
-    if (context instanceof Activity) {
-      return (Activity) context;
-    } else if (context instanceof ContextWrapper) {
-      return lookupActivityFromContext(((ContextWrapper) context).getBaseContext());
-    } else {
-      throw new IllegalArgumentException("Cannot find instance of Activity in parent tree");
-    }
+    return PartnerConfigHelper.lookupActivityFromContext(context);
   }
 
   /**
@@ -342,6 +331,18 @@ public class PartnerCustomizationLayout extends TemplateLayout {
   }
 
   /**
+   * Sets a logging observer for {@link FooterBarMixin}. The logging observer is used to log
+   * impressions and clicks on the layout and footer bar buttons.
+   *
+   * @throws UnsupportedOperationException if the primary or secondary button has been set before
+   *     the logging observer is set
+   */
+  public void setLoggingObserver(LoggingObserver loggingObserver) {
+    getMixin(FooterBarMixin.class).setLoggingObserver(loggingObserver);
+    loggingObserver.log(new LayoutInflatedEvent(this));
+  }
+
+  /**
    * Invoke the method onFocusStatusChanged when onWindowFocusChangeListener receive onFocusChanged.
    */
   private void onFocusChanged(boolean hasFocus) {
@@ -352,4 +353,3 @@ public class PartnerCustomizationLayout extends TemplateLayout {
                 activity, PartnerCustomizationLayout.this, hasFocus));
   }
 }
-
