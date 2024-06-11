@@ -20,11 +20,10 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Build;
-import android.os.Build.VERSION;
-import android.os.Build.VERSION_CODES;
 import android.provider.Settings;
 import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
+import com.google.errorprone.annotations.InlineMe;
 import java.util.Arrays;
 
 /**
@@ -34,12 +33,26 @@ import java.util.Arrays;
  */
 public final class WizardManagerHelper {
 
-  @VisibleForTesting public static final String ACTION_NEXT = "com.android.wizard.NEXT";
+  /** Enum for notifying an Activity that what SetupWizard flow is */
+  public enum SuwLifeCycleEnum {
+    UNKNOWN(0),
+    INITIALIZATION(1),
+    PREDEFERRED(2),
+    DEFERRED(3),
+    PORTAL(4),
+    RESTORE_ANYTIME(5);
 
-  // EXTRA_SCRIPT_URI and EXTRA_ACTION_ID are used in setup wizard in versions before M and are
-  // kept for backwards compatibility.
-  @VisibleForTesting static final String EXTRA_SCRIPT_URI = "scriptUri";
-  @VisibleForTesting static final String EXTRA_ACTION_ID = "actionId";
+    public final int value;
+
+    SuwLifeCycleEnum(int value) {
+      this.value = value;
+    }
+  }
+
+  /** Extra for notifying an Activity that what SetupWizard flow is. */
+  public static final String EXTRA_SUW_LIFECYCLE = "suw_lifecycle";
+
+  @VisibleForTesting public static final String ACTION_NEXT = "com.android.wizard.NEXT";
 
   @VisibleForTesting static final String EXTRA_WIZARD_BUNDLE = "wizardBundle";
   private static final String EXTRA_RESULT_CODE = "com.android.setupwizard.ResultCode";
@@ -130,12 +143,19 @@ public final class WizardManagerHelper {
       dstIntent.putExtra(key, srcIntent.getBooleanExtra(key, false));
     }
 
-    for (String key : Arrays.asList(EXTRA_THEME, EXTRA_SCRIPT_URI, EXTRA_ACTION_ID)) {
-      dstIntent.putExtra(key, srcIntent.getStringExtra(key));
-    }
+    // The TikTok code in Restore doesn't let us put serializable extras into intents.
+    dstIntent.putExtra(
+        EXTRA_SUW_LIFECYCLE,
+        srcIntent.getIntExtra(EXTRA_SUW_LIFECYCLE, SuwLifeCycleEnum.UNKNOWN.value));
+    dstIntent.putExtra(EXTRA_THEME, srcIntent.getStringExtra(EXTRA_THEME));
   }
 
-  /** @deprecated Use {@link isInitialSetupWizard} instead. */
+  /**
+   * @deprecated Use {@link isInitialSetupWizard} instead.
+   */
+  @InlineMe(
+      replacement = "intent.getBooleanExtra(WizardManagerHelper.EXTRA_IS_FIRST_RUN, false)",
+      imports = "com.google.android.setupcompat.util.WizardManagerHelper")
   @Deprecated
   public static boolean isSetupWizardIntent(Intent intent) {
     return intent.getBooleanExtra(EXTRA_IS_FIRST_RUN, false);
@@ -151,17 +171,9 @@ public final class WizardManagerHelper {
    * @see #isDeviceProvisioned(Context)
    */
   public static boolean isUserSetupComplete(Context context) {
-    if (VERSION.SDK_INT >= VERSION_CODES.JELLY_BEAN_MR1) {
-      return Settings.Secure.getInt(
-              context.getContentResolver(), SETTINGS_SECURE_USER_SETUP_COMPLETE, 0)
-          == 1;
-    } else {
-      // For versions below JB MR1, there are no user profiles. Just return the global device
-      // provisioned state.
-      return Settings.Secure.getInt(
-              context.getContentResolver(), SETTINGS_GLOBAL_DEVICE_PROVISIONED, 0)
-          == 1;
-    }
+    return Settings.Secure.getInt(
+            context.getContentResolver(), SETTINGS_SECURE_USER_SETUP_COMPLETE, 0)
+        == 1;
   }
 
   /**
@@ -174,15 +186,9 @@ public final class WizardManagerHelper {
    * @see #isUserSetupComplete(Context)
    */
   public static boolean isDeviceProvisioned(Context context) {
-    if (VERSION.SDK_INT >= VERSION_CODES.JELLY_BEAN_MR1) {
-      return Settings.Global.getInt(
-              context.getContentResolver(), SETTINGS_GLOBAL_DEVICE_PROVISIONED, 0)
-          == 1;
-    } else {
-      return Settings.Secure.getInt(
-              context.getContentResolver(), SETTINGS_GLOBAL_DEVICE_PROVISIONED, 0)
-          == 1;
-    }
+    return Settings.Global.getInt(
+            context.getContentResolver(), SETTINGS_GLOBAL_DEVICE_PROVISIONED, 0)
+        == 1;
   }
 
   /**
