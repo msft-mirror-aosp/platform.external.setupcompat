@@ -25,7 +25,6 @@ import android.content.Context;
 import android.content.res.Configuration;
 import android.content.res.TypedArray;
 import android.graphics.Color;
-import android.os.Build;
 import android.os.Build.VERSION_CODES;
 import android.os.PersistableBundle;
 import android.util.AttributeSet;
@@ -52,12 +51,13 @@ import com.google.android.setupcompat.PartnerCustomizationLayout;
 import com.google.android.setupcompat.R;
 import com.google.android.setupcompat.internal.FooterButtonPartnerConfig;
 import com.google.android.setupcompat.internal.TemplateLayout;
+import com.google.android.setupcompat.logging.LoggingObserver;
+import com.google.android.setupcompat.logging.LoggingObserver.SetupCompatUiEvent.ButtonInflatedEvent;
 import com.google.android.setupcompat.logging.internal.FooterBarMixinMetrics;
 import com.google.android.setupcompat.partnerconfig.PartnerConfig;
 import com.google.android.setupcompat.partnerconfig.PartnerConfigHelper;
 import com.google.android.setupcompat.template.FooterButton.ButtonType;
 import java.util.Locale;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * A {@link Mixin} for managing buttons. By default, the button bar expects that buttons on the
@@ -78,6 +78,7 @@ public class FooterBarMixin implements Mixin {
   @VisibleForTesting public LinearLayout buttonContainer;
   private FooterButton primaryButton;
   private FooterButton secondaryButton;
+  private LoggingObserver loggingObserver;
   @IdRes private int primaryButtonId;
   @IdRes private int secondaryButtonId;
   @VisibleForTesting public FooterButtonPartnerConfig primaryButtonPartnerConfigForTesting;
@@ -92,8 +93,6 @@ public class FooterBarMixin implements Mixin {
   @ColorInt private final int footerBarSecondaryBackgroundColor;
   private boolean removeFooterBarWhenEmpty = true;
   private boolean isSecondaryButtonInPrimaryStyle = false;
-
-  private static final AtomicInteger nextGeneratedId = new AtomicInteger(1);
 
   @VisibleForTesting public final FooterBarMixinMetrics metrics = new FooterBarMixinMetrics();
 
@@ -144,7 +143,6 @@ public class FooterBarMixin implements Mixin {
       }
 
       @Override
-      @TargetApi(VERSION_CODES.JELLY_BEAN_MR1)
       public void onLocaleChanged(Locale locale) {
         if (buttonContainer != null) {
           Button button = buttonContainer.findViewById(id);
@@ -155,7 +153,6 @@ public class FooterBarMixin implements Mixin {
       }
 
       @Override
-      @TargetApi(VERSION_CODES.JELLY_BEAN_MR1)
       public void onDirectionChanged(int direction) {
         if (buttonContainer != null && direction != -1) {
           buttonContainer.setLayoutDirection(direction);
@@ -228,7 +225,25 @@ public class FooterBarMixin implements Mixin {
       metrics.logSecondaryButtonInitialStateVisibility(
           /* isVisible= */ true, /* isUsingXml= */ true);
     }
+  }
 
+  public void setLoggingObserver(LoggingObserver observer) {
+    loggingObserver = observer;
+
+    // If primary button is already created, it's likely that {@code setPrimaryButton()} was called
+    // before an {@link LoggingObserver} is set, we need to set an observer and call the right
+    // logging method here.
+    if (primaryButtonId != 0) {
+      loggingObserver.log(
+          new ButtonInflatedEvent(getPrimaryButtonView(), LoggingObserver.ButtonType.PRIMARY));
+      getPrimaryButton().setLoggingObserver(observer);
+    }
+    // Same for secondary button.
+    if (secondaryButtonId != 0) {
+      loggingObserver.log(
+          new ButtonInflatedEvent(getSecondaryButtonView(), LoggingObserver.ButtonType.SECONDARY));
+      getSecondaryButton().setLoggingObserver(observer);
+    }
   }
 
   protected boolean isFooterButtonAlignedEnd() {
@@ -281,11 +296,7 @@ public class FooterBarMixin implements Mixin {
       // Ignore action since buttonContainer is null
       return;
     }
-    if (Build.VERSION.SDK_INT >= VERSION_CODES.JELLY_BEAN_MR1) {
-      buttonContainer.setId(View.generateViewId());
-    } else {
-      buttonContainer.setId(generateViewId());
-    }
+    buttonContainer.setId(View.generateViewId());
     updateFooterBarPadding(
         buttonContainer,
         footerBarPaddingStart,
@@ -419,6 +430,11 @@ public class FooterBarMixin implements Mixin {
     primaryButtonPartnerConfigForTesting = footerButtonPartnerConfig;
     onFooterButtonInflated(button, footerBarPrimaryBackgroundColor);
     onFooterButtonApplyPartnerResource(button, footerButtonPartnerConfig);
+    if (loggingObserver != null) {
+      loggingObserver.log(
+          new ButtonInflatedEvent(getPrimaryButtonView(), LoggingObserver.ButtonType.PRIMARY));
+      footerButton.setLoggingObserver(loggingObserver);
+    }
 
     // Make sure the position of buttons are correctly and prevent primary button create twice or
     // more.
@@ -430,7 +446,13 @@ public class FooterBarMixin implements Mixin {
     return primaryButton;
   }
 
-  @VisibleForTesting(otherwise = VisibleForTesting.PROTECTED)
+  /**
+   * Returns the {@link Button} of primary button.
+   *
+   * @apiNote It is not recommended to apply style to the view directly. The setup library will
+   *     handle the button style. There is no guarantee that changes made directly to the button
+   *     style will not cause unexpected behavior.
+   */
   public Button getPrimaryButtonView() {
     return buttonContainer == null ? null : buttonContainer.findViewById(primaryButtonId);
   }
@@ -443,7 +465,7 @@ public class FooterBarMixin implements Mixin {
   /** Sets secondary button for footer. */
   @MainThread
   public void setSecondaryButton(FooterButton footerButton) {
-    setSecondaryButton(footerButton, /*usePrimaryStyle= */ false);
+    setSecondaryButton(footerButton, /* usePrimaryStyle= */ false);
   }
 
   /** Sets secondary button for footer. Allow to use the primary button style. */
@@ -499,6 +521,10 @@ public class FooterBarMixin implements Mixin {
 
     onFooterButtonInflated(button, footerBarSecondaryBackgroundColor);
     onFooterButtonApplyPartnerResource(button, footerButtonPartnerConfig);
+    if (loggingObserver != null) {
+      loggingObserver.log(new ButtonInflatedEvent(button, LoggingObserver.ButtonType.SECONDARY));
+      footerButton.setLoggingObserver(loggingObserver);
+    }
 
     // Make sure the position of buttons are correctly and prevent secondary button create twice or
     // more.
@@ -667,7 +693,13 @@ public class FooterBarMixin implements Mixin {
     return buttonContainer.getVisibility();
   }
 
-  @VisibleForTesting(otherwise = VisibleForTesting.PROTECTED)
+  /**
+   * Returns the {@link Button} of secondary button.
+   *
+   * @apiNote It is not recommended to apply style to the view directly. The setup library will
+   *     handle the button style. There is no guarantee that changes made directly to the button
+   *     style will not cause unexpected behavior.
+   */
   public Button getSecondaryButtonView() {
     return buttonContainer == null ? null : buttonContainer.findViewById(secondaryButtonId);
   }
@@ -678,29 +710,11 @@ public class FooterBarMixin implements Mixin {
         && getSecondaryButtonView().getVisibility() == View.VISIBLE;
   }
 
-  private static int generateViewId() {
-    for (; ; ) {
-      final int result = nextGeneratedId.get();
-      // aapt-generated IDs have the high byte nonzero; clamp to the range under that.
-      int newValue = result + 1;
-      if (newValue > 0x00FFFFFF) {
-        newValue = 1; // Roll over to 1, not 0.
-      }
-      if (nextGeneratedId.compareAndSet(result, newValue)) {
-        return result;
-      }
-    }
-  }
-
   private FooterActionButton inflateButton(
       FooterButton footerButton, FooterButtonPartnerConfig footerButtonPartnerConfig) {
     FooterActionButton button =
         createThemedButton(context, footerButtonPartnerConfig.getPartnerTheme());
-    if (Build.VERSION.SDK_INT >= VERSION_CODES.JELLY_BEAN_MR1) {
-      button.setId(View.generateViewId());
-    } else {
-      button.setId(generateViewId());
-    }
+    button.setId(View.generateViewId());
 
     // apply initial configuration into button view.
     button.setText(footerButton.getText());
@@ -784,12 +798,11 @@ public class FooterBarMixin implements Mixin {
   }
 
   protected View inflateFooter(@LayoutRes int footer) {
-    if (Build.VERSION.SDK_INT >= VERSION_CODES.JELLY_BEAN) {
-      LayoutInflater inflater =
-          LayoutInflater.from(
-              new ContextThemeWrapper(context, R.style.SucPartnerCustomizationButtonBar_Stackable));
-      footerStub.setLayoutInflater(inflater);
-    }
+    LayoutInflater inflater =
+        LayoutInflater.from(
+            new ContextThemeWrapper(context, R.style.SucPartnerCustomizationButtonBar_Stackable));
+    footerStub.setLayoutInflater(inflater);
+
     footerStub.setLayoutResource(footer);
     return footerStub.inflate();
   }

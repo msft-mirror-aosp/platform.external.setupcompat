@@ -49,6 +49,7 @@ filegroup {
         "main/java/com/google/android/setupcompat/*.java",
         "main/java/com/google/android/setupcompat/internal/*.java",
         "main/java/com/google/android/setupcompat/logging/*.java",
+        "main/java/com/google/android/setupcompat/logging/*.kt",
         "main/java/com/google/android/setupcompat/logging/internal/*.java",
         "main/java/com/google/android/setupcompat/template/*.java",
         "main/java/com/google/android/setupcompat/util/*.java",
@@ -96,9 +97,10 @@ android_library {
     ],
     static_libs: [
         "androidx.annotation_annotation",
+        "androidx.window_window",
         "error_prone_annotations",
     ],
-    min_sdk_version: "14",
+    min_sdk_version: "21",
     sdk_version: "current",
     optimize: {
         proguard_flags_files: ["proguard.flags"],
@@ -123,9 +125,10 @@ android_library {
     ],
     static_libs: [
         "androidx.annotation_annotation",
+        "androidx.window_window",
         "error_prone_annotations",
     ],
-    min_sdk_version: "14",
+    min_sdk_version: "21",
     sdk_version: "current",
     optimize: {
         proguard_flags_files: ["proguard.flags"],
